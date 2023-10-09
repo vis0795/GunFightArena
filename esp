@@ -1,0 +1,67 @@
+-- Define the color you want to use for highlighting (in RGB format)
+local highlightColor = Color3.new(1, 0, 0)  -- Red color
+
+-- Function to highlight a player
+local function highlightPlayer(player)
+    -- Get the local player
+    local localPlayer = game.Players.LocalPlayer
+
+    -- Check if the player is not the local player and not on the same team
+    if player ~= localPlayer and player.TeamColor ~= localPlayer.TeamColor then
+        local character = player.Character
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local highlight = part:FindFirstChild("PlayerHighlight")
+                    if not highlight then
+                        highlight = Instance.new("BoxHandleAdornment")
+                        highlight.Name = "PlayerHighlight"
+                        highlight.Size = part.Size
+                        highlight.Adornee = part
+                        highlight.Color3 = highlightColor
+                        highlight.AlwaysOnTop = true
+                        highlight.Transparency = 0.5
+                        highlight.ZIndex = 5
+                        highlight.Parent = part
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Function to handle a player's character being added
+local function onCharacterAdded(character)
+    highlightPlayer(game.Players:GetPlayerFromCharacter(character))
+end
+
+-- Function to handle new players joining the game
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function()
+        -- Highlight the player's parts when their character is added
+        onCharacterAdded(player.Character)
+    end)
+end
+
+-- Connect the onPlayerAdded function to the PlayerAdded event
+game:GetService("Players").PlayerAdded:Connect(onPlayerAdded)
+
+-- Highlight all parts of players who are already in the game (except the local player and players on the same team)
+for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+    highlightPlayer(player)
+end
+
+-- Update the highlighting every second (except for the local player and players on the same team)
+while true do
+    wait(1)
+    print("Updating")
+    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+        if player ~= game.Players.LocalPlayer and player.TeamColor ~= game.Players.LocalPlayer.TeamColor then
+            highlightPlayer(player)
+        end
+    end
+end
+
+
+--[[aimbot]]--
+
