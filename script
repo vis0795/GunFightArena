@@ -1,0 +1,107 @@
+-- Define variables
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local camera = game.Workspace.CurrentCamera
+local lockedOn = false
+local targetPlayer = nil
+local LockPart = "Head" -- Specify the part to lock onto
+
+-- Function to find the closest non-teammate player to a given position
+local function FindClosestNonTeammatePlayer(position)
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    local localPlayer = game.Players.LocalPlayer
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer then -- Skip the local player
+            local character = player.Character
+            if character and character:IsDescendantOf(game) then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local part = humanoid.Parent:FindFirstChild(LockPart)
+
+                    if part then
+                        local distance = (part.Position - position).Magnitude
+
+                        -- Check if the player is on the same team as the local player
+                        local playerTeam = player.Team
+                        local localPlayerTeam = localPlayer.Team
+
+                        if not playerTeam or not localPlayerTeam or playerTeam ~= localPlayerTeam then
+                            if distance < closestDistance then
+                                closestDistance = distance
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Function to lock onto or unlock from the closest non-teammate player to the mouse cursor
+local function ToggleLockOn()
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local mousePosition = mouse.Hit.p
+
+    if lockedOn then
+        lockedOn = false
+        targetPlayer = nil
+        print("Unlocking from player.")
+    else
+        targetPlayer = FindClosestNonTeammatePlayer(mousePosition)
+        if targetPlayer then
+            lockedOn = true
+            print("Locking onto player:", targetPlayer.Name)
+        else
+            print("No eligible players found near the cursor. Locking onto Unknown.")
+        end
+    end
+end
+
+-- Detect the "E" key press to toggle lock on/off
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.E then
+        ToggleLockOn()
+    end
+end)
+
+-- Function to update the camera in real-time
+local function UpdateCamera()
+    if lockedOn and targetPlayer then
+        local character = targetPlayer.Character
+        if character and character:IsDescendantOf(game) then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local part = humanoid.Parent:FindFirstChild(LockPart)
+
+                if part then
+                    local targetPosition = part.Position
+                    local cameraPosition = camera.CFrame.p
+                    local lookVector = (targetPosition - cameraPosition).unit
+
+                    camera.CFrame = CFrame.new(cameraPosition, cameraPosition + lookVector)
+                else
+                    lockedOn = false
+                    targetPlayer = nil
+                    print("Lost lock on player. Unlocking.")
+                end
+            else
+                lockedOn = false
+                targetPlayer = nil
+                print("Player's character is in a ragdoll state. Unlocking.")
+            end
+        else
+            lockedOn = false
+            targetPlayer = nil
+            print("Locked-on player's character was destroyed or is on the same team. Unlocking.")
+        end
+    end
+end
+
+-- Connect the camera update function to the RunService's Heartbeat
+local RunService = game:GetService("RunService")
+RunService.Heartbeat:Connect(UpdateCamera)
