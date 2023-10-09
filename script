@@ -1,4 +1,7 @@
 -- Define variables
+game:GetService("StarterGui"):SetCore("SendNotification", {Title = "AIM + ESP", Text = "Thanks for using! This script was made for a game called GunFight Arena, but it can be used in any other game.", Duration = 4,});
+	wait(0.2)
+	game:GetService("StarterGui"):SetCore("SendNotification", {Title = "How to USE", Text = "Press E to lock onto someone", Duration = 4,});
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local camera = game.Workspace.CurrentCamera
