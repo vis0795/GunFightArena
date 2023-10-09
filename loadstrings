@@ -1,0 +1,2 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/script"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/esp"))()
