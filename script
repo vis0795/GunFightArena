@@ -7,7 +7,6 @@ local Players = game:GetService("Players")
 local camera = game.Workspace.CurrentCamera
 local lockedOn = false
 local targetPlayer = nil
-local LockPart = "Head" -- Specify the part to lock onto
 
 -- Function to find the closest non-teammate player to a given position
 local function FindClosestNonTeammatePlayer(position)
