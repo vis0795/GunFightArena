@@ -2,6 +2,7 @@
 local highlightColor = Color3.new(1, 0, 0)  -- Red color
 
 -- Function to highlight a player
+-- Function to highlight a player with team-specific colors
 local function highlightPlayer(player)
     -- Get the local player
     local localPlayer = game.Players.LocalPlayer
@@ -18,10 +19,17 @@ local function highlightPlayer(player)
                         highlight.Name = "PlayerHighlight"
                         highlight.Size = part.Size
                         highlight.Adornee = part
-                        highlight.Color3 = highlightColor
                         highlight.AlwaysOnTop = true
                         highlight.Transparency = 0.5
                         highlight.ZIndex = 5
+                        
+                        -- Check the player's team and set the highlight color accordingly
+                        if player.TeamColor then
+                            highlight.Color3 = player.TeamColor.Color
+                        else
+                            highlight.Color3 = Color3.new(1, 0, 0) -- Default to red if no team color
+                        end
+                        
                         highlight.Parent = part
                     end
                 end
@@ -29,6 +37,9 @@ local function highlightPlayer(player)
         end
     end
 end
+
+
+
 
 -- Function to handle a player's character being added
 local function onCharacterAdded(character)
