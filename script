@@ -2,6 +2,7 @@
 game:GetService("StarterGui"):SetCore("SendNotification", {Title = "AIM + ESP", Text = "Thanks for using! This script was made for a game called GunFight Arena, but it can be used in any other game.", Duration = 4,});
 	wait(0.2)
 	game:GetService("StarterGui"):SetCore("SendNotification", {Title = "How to USE", Text = "Press E to lock onto someone", Duration = 4,});
+-- Define variables
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local camera = game.Workspace.CurrentCamera
@@ -9,8 +10,34 @@ local lockedOn = false
 local targetPlayer = nil
 local LockPart = "Head" -- Specify the part to lock onto
 
--- Function to find the closest non-teammate player to a given position
-local function FindClosestNonTeammatePlayer(position)
+-- Create the Drawing object for FOV
+local FOV = Drawing.new("Circle")
+FOV.Radius = 45
+FOV.Thickness = 2
+FOV.Transparency = 1
+FOV.Color = Color3.fromRGB(165, 199, 57)
+
+-- Function to update the FOV circle's position
+local function UpdateFOVPosition()
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    FOV.Position = Vector2.new(mouse.X, mouse.Y + 36)
+end
+
+-- Connect the FOV update function to the RunService's Heartbeat
+game:GetService("RunService").Heartbeat:Connect(UpdateFOVPosition)
+
+-- Function to check if a player is inside the FOV circle and close to the mouse
+local function IsPlayerInFOV(player)
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local mousePosition = Vector2.new(mouse.X, mouse.Y)
+    local playerPosition = camera:WorldToScreenPoint(player.Character[LockPart].Position)
+
+    local distance = (mousePosition - Vector2.new(playerPosition.X, playerPosition.Y)).Magnitude
+    return distance <= FOV.Radius
+end
+
+-- Function to find the closest player inside the FOV and close to the mouse
+local function FindClosestPlayer(position)
     local closestPlayer = nil
     local closestDistance = math.huge
     local localPlayer = game.Players.LocalPlayer
@@ -18,7 +45,7 @@ local function FindClosestNonTeammatePlayer(position)
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= localPlayer then -- Skip the local player
             local character = player.Character
-            if character and character:IsDescendantOf(game) then
+            if character and character:IsDescendantOf(game) and IsPlayerInFOV(player) then
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
                 if humanoid then
                     local part = humanoid.Parent:FindFirstChild(LockPart)
@@ -26,7 +53,7 @@ local function FindClosestNonTeammatePlayer(position)
                     if part then
                         local distance = (part.Position - position).Magnitude
 
-                        -- Check if the player is on the same team as the local player
+                        -- Check if the player is on the same team as the local player, if teams exist
                         local playerTeam = player.Team
                         local localPlayerTeam = localPlayer.Team
 
@@ -45,7 +72,7 @@ local function FindClosestNonTeammatePlayer(position)
     return closestPlayer
 end
 
--- Function to lock onto or unlock from the closest non-teammate player to the mouse cursor
+-- Function to lock onto or unlock from the closest player inside the FOV and close to the mouse
 local function ToggleLockOn()
     local mouse = game.Players.LocalPlayer:GetMouse()
     local mousePosition = mouse.Hit.p
@@ -55,12 +82,12 @@ local function ToggleLockOn()
         targetPlayer = nil
         print("Unlocking from player.")
     else
-        targetPlayer = FindClosestNonTeammatePlayer(mousePosition)
+        targetPlayer = FindClosestPlayer(mousePosition)
         if targetPlayer then
             lockedOn = true
             print("Locking onto player:", targetPlayer.Name)
         else
-            print("No eligible players found near the cursor. Locking onto Unknown.")
+            print("No eligible players found inside FOV and close to the cursor. Locking onto Unknown.")
         end
     end
 end
@@ -100,7 +127,7 @@ local function UpdateCamera()
         else
             lockedOn = false
             targetPlayer = nil
-            print("Locked-on player's character was destroyed or is on the same team. Unlocking.")
+            print("Locked-on player's character was destroyed. Unlocking.")
         end
     end
 end
