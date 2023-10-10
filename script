@@ -1,18 +1,33 @@
+-- Settings
+local Settings = {
+    LockClosestPart = true, -- Specify whether to lock onto the closest part to the mouse
+    LockPart = "Head", -- Default part to lock onto
+    FOVRadius = 45, -- Field of view radius
+}
+
 -- Define variables
-game:GetService("StarterGui"):SetCore("SendNotification", {Title = "AIM + ESP", Text = "Thanks for using! This script was made for a game called GunFight Arena, but it can be used in any other game.", Duration = 4,});
-	wait(0.2)
-	game:GetService("StarterGui"):SetCore("SendNotification", {Title = "How to USE", Text = "Press E to lock onto someone", Duration = 4,});
--- Define variables
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "AIM + ESP",
+    Text = "Thanks for using! This script was made for a game called GunFight Arena, but it can be used in any other game.",
+    Duration = 4,
+})
+wait(0.2)
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "How to USE",
+    Text = "Press E to lock onto someone",
+    Duration = 4,
+})
+
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local camera = game.Workspace.CurrentCamera
 local lockedOn = false
+local targetPart = nil
 local targetPlayer = nil
-local LockPart = "Head" -- Specify the part to lock onto
 
 -- Create the Drawing object for FOV
 local FOV = Drawing.new("Circle")
-FOV.Radius = 45
+FOV.Radius = Settings.FOVRadius
 FOV.Thickness = 2
 FOV.Transparency = 1
 FOV.Color = Color3.fromRGB(165, 199, 57)
@@ -30,10 +45,51 @@ game:GetService("RunService").Heartbeat:Connect(UpdateFOVPosition)
 local function IsPlayerInFOV(player)
     local mouse = game.Players.LocalPlayer:GetMouse()
     local mousePosition = Vector2.new(mouse.X, mouse.Y)
-    local playerPosition = camera:WorldToScreenPoint(player.Character[LockPart].Position)
+    local playerPosition = camera:WorldToScreenPoint(player.Character[Settings.LockPart].Position)
 
     local distance = (mousePosition - Vector2.new(playerPosition.X, playerPosition.Y)).Magnitude
     return distance <= FOV.Radius
+end
+
+-- Function to find the closest part of the player's character to the mouse
+local function FindClosestPartToMouse(player)
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local mousePosition = Vector2.new(mouse.X, mouse.Y)
+    local character = player.Character
+    if not character or not character:IsDescendantOf(game) then
+        return nil
+    end
+
+    local closestPart = nil
+    local closestDistance = math.huge
+
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local partPosition = camera:WorldToScreenPoint(part.Position)
+            local distance = (mousePosition - Vector2.new(partPosition.X, partPosition.Y)).Magnitude
+
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPart = part
+            end
+        end
+    end
+
+    return closestPart
+end
+
+-- Function to lock onto a specific part of the player
+local function LockOntoPart(part)
+    lockedOn = true
+    targetPart = part
+    print("Locking onto part:", part.Name)
+end
+
+-- Function to unlock from the currently locked part
+local function Unlock()
+    lockedOn = false
+    targetPart = nil
+    print("Unlocking.")
 end
 
 -- Function to find the closest player inside the FOV and close to the mouse
@@ -48,7 +104,7 @@ local function FindClosestPlayer(position)
             if character and character:IsDescendantOf(game) and IsPlayerInFOV(player) then
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
                 if humanoid then
-                    local part = humanoid.Parent:FindFirstChild(LockPart)
+                    local part = Settings.LockClosestPart and FindClosestPartToMouse(player) or humanoid.Parent:FindFirstChild(Settings.LockPart)
 
                     if part then
                         local distance = (part.Position - position).Magnitude
@@ -78,14 +134,14 @@ local function ToggleLockOn()
     local mousePosition = mouse.Hit.p
 
     if lockedOn then
-        lockedOn = false
-        targetPlayer = nil
-        print("Unlocking from player.")
+        Unlock()
     else
         targetPlayer = FindClosestPlayer(mousePosition)
         if targetPlayer then
-            lockedOn = true
-            print("Locking onto player:", targetPlayer.Name)
+            local partToLockOnto = Settings.LockClosestPart and FindClosestPartToMouse(targetPlayer) or targetPlayer.Character[Settings.LockPart]
+            if partToLockOnto then
+                LockOntoPart(partToLockOnto)
+            end
         else
             print("No eligible players found inside FOV and close to the cursor. Locking onto Unknown.")
         end
@@ -101,38 +157,33 @@ end)
 
 -- Function to update the camera in real-time
 local function UpdateCamera()
-    if lockedOn and targetPlayer then
-        local character = targetPlayer.Character
-        if character and character:IsDescendantOf(game) then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                local part = humanoid.Parent:FindFirstChild(LockPart)
+    if lockedOn and targetPart then
+        local cameraPosition = camera.CFrame.p
+        local lookVector = (targetPart.Position - cameraPosition).unit
 
-                if part then
-                    local targetPosition = part.Position
-                    local cameraPosition = camera.CFrame.p
-                    local lookVector = (targetPosition - cameraPosition).unit
-
-                    camera.CFrame = CFrame.new(cameraPosition, cameraPosition + lookVector)
-                else
-                    lockedOn = false
-                    targetPlayer = nil
-                    print("Lost lock on player. Unlocking.")
-                end
-            else
-                lockedOn = false
-                targetPlayer = nil
-                print("Player's character is in a ragdoll state. Unlocking.")
-            end
-        else
-            lockedOn = false
-            targetPlayer = nil
-            print("Locked-on player's character was destroyed. Unlocking.")
-        end
+        camera.CFrame = CFrame.new(cameraPosition, cameraPosition + lookVector)
     end
 end
 
 -- Connect the camera update function to the RunService's Heartbeat
 local RunService = game:GetService("RunService")
 RunService.Heartbeat:Connect(UpdateCamera)
+
+-- Function to unlock if player's health reaches 0 or lower
+local function CheckHealth()
+    if lockedOn and targetPlayer then
+        local character = targetPlayer.Character
+        if character and character:IsDescendantOf(game) then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health <= 0 then
+                Unlock()
+                print(targetPlayer.Name .. "'s health reached 0 or lower. Unlocking.")
+            end
+        end
+    end
+end
+
+-- Connect the health check function to the RunService's Heartbeat
+RunService.Heartbeat:Connect(CheckHealth)
+
 loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/esp"))()
