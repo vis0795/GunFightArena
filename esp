@@ -71,4 +71,4 @@ while true do
             highlightPlayer(player)
         end
     end
-end
+end 
