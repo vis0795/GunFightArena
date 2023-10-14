@@ -1,22 +1,21 @@
--- Settings
 local Settings = {
-    LockClosestPart = true, -- Specify whether to lock onto the closest part to the mouse
-    LockPart = "Head", -- Default part to lock onto
-    FOVRadius = 45, -- Field of view radius
+    LockClosestPart = true,
+    LockPart = "Head",
+    FOVRadius = 100,
+    ToggleKey = Enum.KeyCode.F,
+    HighlightEsp = true,
+    VisibleFOVCircle = false,
 }
 
--- Define variables
+
+
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "AIM + ESP",
     Text = "Thanks for using! This script was made for a game called GunFight Arena, but it can be used in any other game.",
     Duration = 4,
 })
 wait(0.2)
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "How to USE",
-    Text = "Press E to lock onto someone",
-    Duration = 4,
-})
+
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -25,23 +24,23 @@ local lockedOn = false
 local targetPart = nil
 local targetPlayer = nil
 
--- Create the Drawing object for FOV
+
 local FOV = Drawing.new("Circle")
 FOV.Radius = Settings.FOVRadius
 FOV.Thickness = 2
 FOV.Transparency = 1
 FOV.Color = Color3.fromRGB(165, 199, 57)
+FOV.Visible = Settings.VisibleFOVCircle
 
--- Function to update the FOV circle's position
 local function UpdateFOVPosition()
     local mouse = game.Players.LocalPlayer:GetMouse()
     FOV.Position = Vector2.new(mouse.X, mouse.Y + 36)
 end
 
--- Connect the FOV update function to the RunService's Heartbeat
+
 game:GetService("RunService").Heartbeat:Connect(UpdateFOVPosition)
 
--- Function to check if a player is inside the FOV circle and close to the mouse
+
 local function IsPlayerInFOV(player)
     local mouse = game.Players.LocalPlayer:GetMouse()
     local mousePosition = Vector2.new(mouse.X, mouse.Y)
@@ -51,7 +50,7 @@ local function IsPlayerInFOV(player)
     return distance <= FOV.Radius
 end
 
--- Function to find the closest part of the player's character to the mouse
+
 local function FindClosestPartToMouse(player)
     local mouse = game.Players.LocalPlayer:GetMouse()
     local mousePosition = Vector2.new(mouse.X, mouse.Y)
@@ -78,28 +77,28 @@ local function FindClosestPartToMouse(player)
     return closestPart
 end
 
--- Function to lock onto a specific part of the player
+
 local function LockOntoPart(part)
     lockedOn = true
     targetPart = part
     print("Locking onto part:", part.Name)
 end
 
--- Function to unlock from the currently locked part
+
 local function Unlock()
     lockedOn = false
     targetPart = nil
     print("Unlocking.")
 end
 
--- Function to find the closest player inside the FOV and close to the mouse
+
 local function FindClosestPlayer(position)
     local closestPlayer = nil
     local closestDistance = math.huge
     local localPlayer = game.Players.LocalPlayer
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= localPlayer then -- Skip the local player
+        if player ~= localPlayer then 
             local character = player.Character
             if character and character:IsDescendantOf(game) and IsPlayerInFOV(player) then
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -109,7 +108,7 @@ local function FindClosestPlayer(position)
                     if part then
                         local distance = (part.Position - position).Magnitude
 
-                        -- Check if the player is on the same team as the local player, if teams exist
+
                         local playerTeam = player.Team
                         local localPlayerTeam = localPlayer.Team
 
@@ -128,7 +127,7 @@ local function FindClosestPlayer(position)
     return closestPlayer
 end
 
--- Function to lock onto or unlock from the closest player inside the FOV and close to the mouse
+
 local function ToggleLockOn()
     local mouse = game.Players.LocalPlayer:GetMouse()
     local mousePosition = mouse.Hit.p
@@ -148,14 +147,15 @@ local function ToggleLockOn()
     end
 end
 
--- Detect the "E" key press to toggle lock on/off
+
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.E then
+    if not gameProcessedEvent and input.KeyCode == Settings.ToggleKey then
         ToggleLockOn()
     end
 end)
 
--- Function to update the camera in real-time
+
+
 local function UpdateCamera()
     if lockedOn and targetPart then
         local cameraPosition = camera.CFrame.p
@@ -165,11 +165,11 @@ local function UpdateCamera()
     end
 end
 
--- Connect the camera update function to the RunService's Heartbeat
+
 local RunService = game:GetService("RunService")
 RunService.Heartbeat:Connect(UpdateCamera)
 
--- Function to unlock if player's health reaches 0 or lower
+
 local function CheckHealth()
     if lockedOn and targetPlayer then
         local character = targetPlayer.Character
@@ -183,7 +183,9 @@ local function CheckHealth()
     end
 end
 
--- Connect the health check function to the RunService's Heartbeat
+
 RunService.Heartbeat:Connect(CheckHealth)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/esp"))()
+if Settings.HighlightEsp == true then
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/vis0795/GunFightArena/main/esp"))()
+end
